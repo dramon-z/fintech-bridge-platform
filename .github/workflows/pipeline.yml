@@ -1,10 +1,13 @@
-name: payments-platform-ci-cd
+name: Payments-platform-ci-cd
 
 on:
   push:
     branches: [ master ]
   pull_request:
     branches: [ feature/*,hotfix/* ]
+permissions:
+  id-token: write
+  contents: read
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -75,7 +78,7 @@ jobs:
           kubectl describe deployment payments-api
           kubectl rollout status deployment/payments-api --timeout=180s || (kubectl logs -l app=payments-api && exit 1)
 
-      - name: Automated Deployment Tests (15% Criteria)
+      - name: Automated Deployment Tests
         run: |        
           echo "Creating a tunnel to the service..."
           
@@ -92,7 +95,7 @@ jobs:
           echo "Response: $RESPONSE"
           
           if echo "$RESPONSE" | grep -q "success"; then
-            echo "✅ TEST SUCCESSFUL: The transaction was processed successfully
+            echo "✅ TEST SUCCESSFUL: The transaction was processed successfully"
           else
             echo "❌ TEST FAILED: Check the logs"
             exit 1
@@ -153,8 +156,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
@@ -182,10 +184,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE }}
           aws-region: ${{ secrets.AWS_REGION }}
-
 
       - name: Terraform Init & Apply
         run: |
