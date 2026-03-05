@@ -15,7 +15,7 @@ spec:
         app: payments-api
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
+        prometheus.io/port: "8000"
         prometheus.io/path: "/metrics"
     spec:
       containers:
@@ -37,18 +37,18 @@ spec:
         startupProbe:
           httpGet:
             path: /docs
-            port: 8080
+            port: 8000
           failureThreshold: 24
           periodSeconds: 5
         livenessProbe:
           httpGet:
             path: /docs
-            port: 8080
+            port: 8000
           initialDelaySeconds: 10
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /docs
-            port: 8080
+            port: 8000
           initialDelaySeconds: 5
           periodSeconds: 10

@@ -14,7 +14,7 @@ SOC2 aligned design
 Run locally
 
 docker build -t payments-api .
-docker run -p 8080:8080 payments-api
+docker run -p 8000:8000 payments-api
 
 
 
