@@ -1,0 +1,16 @@
+{
+  "vendors": {
+    "vendorA": {
+      "status": "success",
+      "message": "Transfer processed via Vendor A"
+    },
+    "vendorB": {
+      "status": "pending",
+      "message": "Transfer pending via Vendor B"
+    }
+  },
+  "default_response": {
+    "status": "mocked_test",
+    "message": "Vendor not recognized, returning generic mock response"
+  }
+}
