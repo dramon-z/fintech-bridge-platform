@@ -35,14 +35,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Debug Secret
-        run: |
-          if [ -z "${{ secrets.AWS_REGION }}" ]; then
-            echo "❌ El secreto AWS_REGION está VACÍO"
-            exit 1
-          else
-            echo "✅ El secreto AWS_REGION tiene contenido"
-          fi
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
