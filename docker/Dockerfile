@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir \
     uvicorn \
     pydantic \
     requests \
+    curl \
     prometheus-fastapi-instrumentator
 
 RUN pip install --no-cache-dir fastapi uvicorn pydantic requests
