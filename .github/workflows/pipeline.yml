@@ -101,17 +101,35 @@ jobs:
             exit 1
           fi
 
-      - name: Generate DORA Metrics Report
-        if: success()
+
+      - name: "DORA & Observability: Metrics Report"
+        if: always() # Se ejecuta aunque los pasos anteriores fallen para ver qué pasó
         run: |
-          echo "====================================="
-          echo "📊 DORA METRICS REPORT"
-          echo "Deployment Frequency: High (On-demand)"
-          echo "Change Failure Rate: 0%"
-          echo "Deployment Status: SUCCESS"
-          echo "====================================="
-
-
+          echo "===================================================="
+          echo "   REPORT DE MÉTRICAS (PROMETHEUS/FASTAPI)          "
+          echo "===================================================="
+          
+          # 1. Abrimos el túnel si no está abierto (o usamos el existente)
+          kubectl port-forward svc/payments-api-service 8000:80 & 
+          sleep 5
+          
+          # 2. Obtenemos las métricas del endpoint
+          METRICS=$(curl -s http://localhost:8000/metrics)
+          
+          # 3. Presentamos los resultados filtrados
+          echo "--- Rendimiento de Tráfico ---"
+          echo "$METRICS" | grep "^http_requests_total" || echo "http_requests_total: 0"
+          
+          echo ""
+          echo "--- DORA: Reliability (Transferencias) ---"
+          echo "$METRICS" | grep "^transfer_success_total" || echo "transfer_success_total: 0"
+          echo "$METRICS" | grep "^transfer_fail_total" || echo "transfer_fail_total: 0"
+          
+          echo ""
+          echo "--- Latencia ---"
+          echo "$METRICS" | grep "^transfer_latency_seconds_sum" || echo "transfer_latency_seconds: N/A"
+          
+          echo "===================================================="
 
 
   # push-to-ecr:
