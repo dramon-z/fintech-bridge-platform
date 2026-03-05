@@ -56,7 +56,8 @@ jobs:
       - name: Build and Load Image
         run: |
           docker build -t payments-api:local -f docker/Dockerfile .
-          kind load docker-image payments-api:local --name chart-testing
+          kind get clusters
+          kind load docker-image payments-api:local --name kind
 
 
       - name: Deploy to Kubernetes (kind)
