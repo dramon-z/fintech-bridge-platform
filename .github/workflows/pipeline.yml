@@ -24,6 +24,8 @@ jobs:
           pip install fastapi uvicorn pydantic requests prometheus-fastapi-instrumentator pytest pytest-cov httpx
 
       - name: "Run Unit Tests (DORA: Quality Check)" 
+        env:        
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           pytest -vv -s --durations=5 tests/
 
