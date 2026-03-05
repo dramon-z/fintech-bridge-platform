@@ -1,14 +1,23 @@
-from .vendors.vendorA import VendorA
-from .vendors.vendorB import VendorB
+import json
+import os
 
-vendors = {
-    "vendorA": VendorA(),
-    "vendorB": VendorB(),
-}
+class VendorsMock:
+    def __init__(self):
+     
+        self.config_path = os.path.join(os.path.dirname(__file__), 'vendors', 'data.json')
+        self._load_config()
 
-def get_vendor(name):
+    def _load_config(self):
+        with open(self.config_path, 'r') as f:
+            self.config = json.load(f)
 
-    if name not in vendors:
-        raise Exception("vendor not supported")
+    def process_transfer(self, vendor_name, amount, txhash):
 
-    return vendors[name]
+        vendor_info = self.config['vendors'].get(
+            vendor_name, 
+            self.config['default_response']
+        )
+        
+        return {
+            "status": vendor_info["status"]
+        }
