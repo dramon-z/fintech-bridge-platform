@@ -74,8 +74,11 @@ jobs:
 
       - name: Automated Deployment Tests (15% Criteria)
         run: |
-          # Obtenemos la IP del Pod para probar la comunicación interna
+          sleep 10
+          
           POD_NAME=$(kubectl get pods -l app=payments-api -o jsonpath='{.items[0].metadata.name}')
+          
+          echo "Testeando contra el pod: $POD_NAME"
           
           # Ejecutamos un test de transferencia real dentro del cluster
           kubectl exec $POD_NAME -- curl -s -X POST "http://localhost:8000/transfer" \
