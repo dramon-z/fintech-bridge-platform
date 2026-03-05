@@ -50,11 +50,14 @@ jobs:
 
       - name: Create kind Cluster
         uses: helm/kind-action@v1.8.0
+        with:
+          cluster_name: kind-payments-api
 
       - name: Build and Load Image
         run: |
           docker build -t payments-api:local -f docker/Dockerfile .
-          kind load docker-image payments-api:local
+          kind load docker-image payments-api:local --name kind-payments-api
+
 
       - name: Deploy to Kubernetes (kind)
         run: |
