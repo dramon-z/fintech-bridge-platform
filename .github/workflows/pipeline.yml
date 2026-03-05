@@ -76,17 +76,22 @@ jobs:
           kubectl rollout status deployment/payments-api --timeout=180s || (kubectl logs -l app=payments-api && exit 1)
 
       - name: Automated Deployment Tests (15% Criteria)
-        run: |
-          sleep 10
+        run: |        
+          echo "Lanzando pod de pruebas para verificar el Service..."
           
-          POD_NAME=$(kubectl get pods -l app=payments-api -o jsonpath='{.items[0].metadata.name}')
-          
-          echo "Testeando contra el pod: $POD_NAME"
-
-          # Ejecutamos un test de transferencia real dentro del cluster
-          kubectl exec $POD_NAME -- curl -s -X POST "http://localhost:8080/transfer" \
+          # Ejecutamos curl desde una imagen que sí lo tenga (curlimages/curl)
+          # Apuntamos al NOMBRE DEL SERVICIO: payments-api-service
+          kubectl run checker --image=curlimages/curl --restart=Never -- \
+            curl -s -X POST "http://payments-api-service:80/transfer" \
             -H "Content-Type: application/json" \
-            -d '{"amount": 100, "vendor": "vendorA", "txhash": "0x123abc"}' | grep "success"
+            -d '{"amount": 100, "vendor": "vendorA", "txhash": "0x123abc"}' > output.json
+          
+          # Esperamos 5 segundos a que el pod termine
+          sleep 5
+          
+          # Verificamos el resultado
+          cat output.json
+          grep "success" output.json
 
       - name: Generate DORA Metrics Report
         if: success()
