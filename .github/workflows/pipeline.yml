@@ -77,46 +77,42 @@ jobs:
 
       - name: Automated Deployment Tests (15% Criteria)
         run: |        
-          echo "Creando túnel hacia el servicio..."
+          echo "Creating a tunnel to the service..."
           
-          # CORRECCIÓN: local:service_port -> 8000:80
           kubectl port-forward svc/payments-api-service 8000:80 & 
-          
-          # Damos un poco más de tiempo por si el runner está lento
+                   
           sleep 10 
           
-          echo "Enviando transacción de prueba a http://localhost:8000/transfer"
-          
-          # Probamos contra el localhost:8000 del runner
+          echo "Sending test transaction to http://localhost:8000/transfer"
+                    
           RESPONSE=$(curl -s -X POST "http://localhost:8000/transfer" \
             -H "Content-Type: application/json" \
             -d '{"amount": 100, "vendor": "vendorA", "txhash": "0x123abc"}')
           
-          echo "Respuesta: $RESPONSE"
+          echo "Response: $RESPONSE"
           
           if echo "$RESPONSE" | grep -q "success"; then
-            echo "✅ TEST EXITOSO"
+            echo "✅ TEST SUCCESSFUL: The transaction was processed successfully
           else
-            echo "❌ TEST FALLIDO: Revisa los logs"
+            echo "❌ TEST FAILED: Check the logs"
             exit 1
           fi
 
       - name: "DORA & Observability: Traffic Simulation & Metrics"
         if: always()
         run: |
-          echo "Simulando tráfico para generar métricas..."
+          echo "Simulating traffic to generate metrics..."
           sudo killall kubectl || true
-          # 1. Asegurar túnel
+          
           kubectl port-forward svc/payments-api-service 8000:80 & 
           sleep 5
           
-          # 2. Bucle de peticiones (Simulación de carga)
-          # Enviamos 5 peticiones a VendorA, 5 a VendorB y 2 a un Vendor desconocido
+          # We sent 35 requests to VendorA, 35 to VendorB, and 6 to an unknown Vendor
           for i in {1..35}; do
             curl -s -X POST "http://localhost:8000/transfer" -H "Content-Type: application/json" \
-              -d "{\"amount\": $i$i.50, \"vendor\": \"vendorA\", \"txhash\": \"0x00A$i\"}" > /dev/null
+              -d "{\"amount\": $i$i.50, \"vendor\": \"vendorA\", \"txhash\": \"0x123A$i\"}" > /dev/null
             curl -s -X POST "http://localhost:8000/transfer" -H "Content-Type: application/json" \
-              -d "{\"amount\": $i$i.00, \"vendor\": \"vendorB\", \"txhash\": \"0x00B$i\"}" > /dev/null
+              -d "{\"amount\": $i$i.00, \"vendor\": \"vendorB\", \"txhash\": \"0x123B$i\"}" > /dev/null
           done
           
           for i in {1..6}; do
@@ -124,19 +120,18 @@ jobs:
               -d "{\"amount\": 10.00, \"vendor\": \"unknown_test\", \"txhash\": \"0xERR$i\"}" > /dev/null
           done
 
-          echo "Peticiones completadas. Extrayendo reporte..."
-          echo "===================================================="
-          echo "   REPORT DE MÉTRICAS (PROMETHEUS/FASTAPI)          "
+          echo "Requests completed. Extracting report..."
+          echo "======================================================"
+          echo " METRICS REPORT (PROMETHEUS/FASTAPI) "
           echo "===================================================="
           
           METRICS=$(curl -s http://localhost:8000/metrics)
           
-          echo "--- Rendimiento de Tráfico ---"
+          echo "--- Traffic Performance ---"
           echo "$METRICS" | grep "^http_requests_total" || echo "http_requests_total: 0"
           
           echo ""
-          echo "--- DORA: Reliability (Transferencias) ---"
-          # Filtramos por nombre de métrica específico 
+          echo "--- DORA: Reliability (Transfers) ---"
           echo "$METRICS" | grep "^transfer_success_total" || echo "transfer_success_total: 0"
           echo "$METRICS" | grep "^transfer_fail_total" || echo "transfer_fail_total: 0"
           
@@ -146,59 +141,63 @@ jobs:
           echo "===================================================="
           sudo killall kubectl || true
 
-  # push-to-ecr:
-  #   needs: build-and-test
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v4 
+  push-to-ecr:
+    if: false
+    needs: build-and-test
+    runs-on: ubuntu-latest    
+    environment: dev
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4 
 
-  #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@v4
-  #       with:
-  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: ${{ secrets.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-  #     - name: Login to Amazon ECR
-  #       id: login-ecr
-  #       uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-  #     - name: Build, tag, and push image to Amazon ECR
-  #       env:
-  #         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-  #         ECR_REPOSITORY: payments-api
-  #         IMAGE_TAG: ${{ github.sha }}
-  #       run: |
-  #         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f docker/Dockerfile . 
-  #         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: payments-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f docker/Dockerfile . 
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-  # deploy:
-  #   needs: push-to-ecr
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v4
+  deploy:
+    if: false
+    needs: push-to-ecr
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-  #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@v4
-  #       with:
-  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: ${{ secrets.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
 
-  #     - name: Terraform Init & Apply
-  #       run: |
-  #         cd infra/terraform 
-  #         terraform init 
-  #         terraform apply -auto-approve
+      - name: Terraform Init & Apply
+        run: |
+          cd infra/terraform 
+          terraform init 
+          terraform apply -auto-approve
 
-  #     - name: Update Kubeconfig
-  #       run: aws eks update-kubeconfig --name payments-cluster --region ${{ secrets.AWS_REGION }}
+      - name: Update Kubeconfig
+        run: aws eks update-kubeconfig --name payments-cluster --region ${{ secrets.AWS_REGION }}
 
-  #     - name: Deploy to EKS
-  #       run: |
-  #         export IMAGE=$ECR_REGISTRY/payments-api:${{ github.sha }}
-  #         envsubst < k8s/deployment.yaml | kubectl apply -f -
-  #         kubectl apply -f k8s/service.yaml
+      - name: Deploy to EKS
+        run: |
+          export IMAGE=$ECR_REGISTRY/payments-api:${{ github.sha }}
+          envsubst < k8s/deployment.yaml | kubectl apply -f -
+          kubectl apply -f k8s/service.yaml
