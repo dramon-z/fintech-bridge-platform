@@ -105,8 +105,11 @@ jobs:
         if: always()
         run: |
           echo "Simulando tráfico para generar métricas..."
+          sudo killall kubectl || true
+          # 1. Asegurar túnel
+          kubectl port-forward svc/payments-api-service 8000:80 & 
+          sleep 5
           
-       
           # 2. Bucle de peticiones (Simulación de carga)
           # Enviamos 5 peticiones a VendorA, 5 a VendorB y 2 a un Vendor desconocido
           for i in {1..35}; do
@@ -141,7 +144,7 @@ jobs:
           echo "--- Latencia ---"
           echo "$METRICS" | grep "^transfer_latency_seconds_sum" || echo "transfer_latency_seconds: N/A"
           echo "===================================================="
-
+          sudo killall kubectl || true
 
   # push-to-ecr:
   #   needs: build-and-test
