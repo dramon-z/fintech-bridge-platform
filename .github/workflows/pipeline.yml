@@ -106,10 +106,7 @@ jobs:
         run: |
           echo "Simulando tráfico para generar métricas..."
           
-          # 1. Asegurar túnel
-          kubectl port-forward svc/payments-api-service 8000:80 & 
-          sleep 5
-          
+       
           # 2. Bucle de peticiones (Simulación de carga)
           # Enviamos 5 peticiones a VendorA, 5 a VendorB y 2 a un Vendor desconocido
           for i in {1..35}; do
