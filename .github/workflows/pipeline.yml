@@ -35,7 +35,7 @@ jobs:
 
       - name: Verify Container Startup (Smoke Test)        
         run: |
-          docker run -d -p 8080:8080 --name test-container payments-api
+          docker run -d -p 8000:8000 --name test-container payments-api
           sleep 5
           docker ps | grep test-container
           docker stop test-container
@@ -77,18 +77,18 @@ jobs:
 
       - name: Automated Deployment Tests (15% Criteria)
         run: |        
-          echo "Creando túnel hacia el servicio en el puerto 8080..."
-          # 1. Mapeamos el puerto 8080 del Service al 8080 del Runner de GitHub
-          kubectl port-forward svc/payments-api-service 8080:8080 & 
+          echo "Creando túnel hacia el servicio en el puerto 8000..."
+          # 1. Mapeamos el puerto 8000 del Service al 8000 del Runner de GitHub
+          kubectl port-forward svc/payments-api-service 8000:8000 & 
           
           # 2. Esperamos a que el túnel se establezca
           sleep 5 
           
-          echo "Enviando transacción de prueba a http://localhost:8080/transfer"
+          echo "Enviando transacción de prueba a http://localhost:8000/transfer"
           
           # 3. Ejecutamos el curl desde el Runner (que ya tiene curl por defecto)
-          # Cambiamos el puerto al 8080 para que coincida con tu Service
-          curl -s -X POST "http://localhost:8080/transfer" \
+          # Cambiamos el puerto al 8000 para que coincida con tu Service
+          curl -s -X POST "http://localhost:8000/transfer" \
             -H "Content-Type: application/json" \
             -d '{"amount": 100, "vendor": "vendorA", "txhash": "0x123abc"}' | grep "success"
 
