@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 5s # Frecuencia alta para ver datos rápido en la demo
+
+scrape_configs:
+  - job_name: 'payments-api'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['api:8000'] # En Docker Compose, el host es el nombre del servicio
