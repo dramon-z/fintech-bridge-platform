@@ -20,8 +20,8 @@ spec:
     spec:
       containers:
       - name: payments-api
-        # La variable $IMAGE se inyecta en el pipeline (envsubst)
         image: $IMAGE
+        imagePullPolicy: Never
         ports:
         - containerPort: 8000
         resources:
@@ -34,12 +34,17 @@ spec:
         env:
           - name: ENV
             value: "production"
-        # Liveness y Readiness probes (Criterio de MTTR/DORA)
+        startupProbe:
+          httpGet:
+            path: /docs
+            port: 8000
+          failureThreshold: 10
+          periodSeconds: 5
         livenessProbe:
           httpGet:
             path: /docs
             port: 8000
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 10
         readinessProbe:
           httpGet:
