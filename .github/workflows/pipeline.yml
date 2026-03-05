@@ -101,36 +101,50 @@ jobs:
             exit 1
           fi
 
-
-      - name: "DORA & Observability: Metrics Report"
-        if: always() # Se ejecuta aunque los pasos anteriores fallen para ver qué pasó
+      - name: "DORA & Observability: Traffic Simulation & Metrics"
+        if: always()
         run: |
+          echo "Simulando tráfico para generar métricas..."
+          sudo killall kubectl || true
+          # 1. Asegurar túnel
+          kubectl port-forward svc/payments-api-service 8000:80 & 
+          sleep 5
+          
+          # 2. Bucle de peticiones (Simulación de carga)
+          # Enviamos 5 peticiones a VendorA, 5 a VendorB y 2 a un Vendor desconocido
+          for i in {1..35}; do
+            curl -s -X POST "http://localhost:8000/transfer" -H "Content-Type: application/json" \
+              -d "{\"amount\": $i$i.50, \"vendor\": \"vendorA\", \"txhash\": \"0x00A$i\"}" > /dev/null
+            curl -s -X POST "http://localhost:8000/transfer" -H "Content-Type: application/json" \
+              -d "{\"amount\": $i$i.00, \"vendor\": \"vendorB\", \"txhash\": \"0x00B$i\"}" > /dev/null
+          done
+          
+          for i in {1..6}; do
+            curl -s -X POST "http://localhost:8000/transfer" -H "Content-Type: application/json" \
+              -d "{\"amount\": 10.00, \"vendor\": \"unknown_test\", \"txhash\": \"0xERR$i\"}" > /dev/null
+          done
+
+          echo "Peticiones completadas. Extrayendo reporte..."
           echo "===================================================="
           echo "   REPORT DE MÉTRICAS (PROMETHEUS/FASTAPI)          "
           echo "===================================================="
           
-          # 1. Abrimos el túnel si no está abierto (o usamos el existente)
-          kubectl port-forward svc/payments-api-service 8000:80 & 
-          sleep 5
-          
-          # 2. Obtenemos las métricas del endpoint
           METRICS=$(curl -s http://localhost:8000/metrics)
           
-          # 3. Presentamos los resultados filtrados
           echo "--- Rendimiento de Tráfico ---"
           echo "$METRICS" | grep "^http_requests_total" || echo "http_requests_total: 0"
           
           echo ""
           echo "--- DORA: Reliability (Transferencias) ---"
+          # Filtramos por nombre de métrica específico 
           echo "$METRICS" | grep "^transfer_success_total" || echo "transfer_success_total: 0"
           echo "$METRICS" | grep "^transfer_fail_total" || echo "transfer_fail_total: 0"
           
           echo ""
           echo "--- Latencia ---"
           echo "$METRICS" | grep "^transfer_latency_seconds_sum" || echo "transfer_latency_seconds: N/A"
-          
           echo "===================================================="
-
+          sudo killall kubectl || true
 
   # push-to-ecr:
   #   needs: build-and-test
