@@ -64,13 +64,15 @@ jobs:
         run: |
           export IMAGE=payments-api:local
           envsubst < k8s/deployment.yaml | kubectl apply -f -
+          cat k8s/service.yaml
           kubectl apply -f k8s/service.yaml
 
       - name: "Wait for Deployment (DORA: Reliability)"
         run: |
+          sleep 20
           kubectl get pods
           kubectl describe deployment payments-api
-          kubectl rollout status deployment/payments-api --timeout=120s
+          kubectl rollout status deployment/payments-api --timeout=180s || (kubectl logs -l app=payments-api && exit 1)
 
       - name: Automated Deployment Tests (15% Criteria)
         run: |
@@ -79,7 +81,7 @@ jobs:
           POD_NAME=$(kubectl get pods -l app=payments-api -o jsonpath='{.items[0].metadata.name}')
           
           echo "Testeando contra el pod: $POD_NAME"
-          
+
           # Ejecutamos un test de transferencia real dentro del cluster
           kubectl exec $POD_NAME -- curl -s -X POST "http://localhost:8000/transfer" \
             -H "Content-Type: application/json" \

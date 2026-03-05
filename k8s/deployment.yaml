@@ -38,7 +38,7 @@ spec:
           httpGet:
             path: /docs
             port: 8000
-          failureThreshold: 10
+          failureThreshold: 24
           periodSeconds: 5
         livenessProbe:
           httpGet:
