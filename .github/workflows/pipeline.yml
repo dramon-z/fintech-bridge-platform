@@ -77,20 +77,29 @@ jobs:
 
       - name: Automated Deployment Tests (15% Criteria)
         run: |        
-          echo "Creando túnel hacia el servicio en el puerto 8000..."
-          # 1. Mapeamos el puerto 8000 del Service al 8000 del Runner de GitHub
-          kubectl port-forward svc/payments-api-service 8000:8000 & 
+          echo "Creando túnel hacia el servicio..."
           
-          # 2. Esperamos a que el túnel se establezca
-          sleep 5 
+          # CORRECCIÓN: local:service_port -> 8000:80
+          kubectl port-forward svc/payments-api-service 8000:80 & 
+          
+          # Damos un poco más de tiempo por si el runner está lento
+          sleep 10 
           
           echo "Enviando transacción de prueba a http://localhost:8000/transfer"
           
-          # 3. Ejecutamos el curl desde el Runner (que ya tiene curl por defecto)
-          # Cambiamos el puerto al 8000 para que coincida con tu Service
-          curl -s -X POST "http://localhost:8000/transfer" \
+          # Probamos contra el localhost:8000 del runner
+          RESPONSE=$(curl -s -X POST "http://localhost:8000/transfer" \
             -H "Content-Type: application/json" \
-            -d '{"amount": 100, "vendor": "vendorA", "txhash": "0x123abc"}' | grep "success"
+            -d '{"amount": 100, "vendor": "vendorA", "txhash": "0x123abc"}')
+          
+          echo "Respuesta: $RESPONSE"
+          
+          if echo "$RESPONSE" | grep -q "success"; then
+            echo "✅ TEST EXITOSO"
+          else
+            echo "❌ TEST FALLIDO: Revisa los logs"
+            exit 1
+          fi
 
       - name: Generate DORA Metrics Report
         if: success()
