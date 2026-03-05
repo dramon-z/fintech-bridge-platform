@@ -35,7 +35,7 @@ jobs:
 
       - name: Verify Container Startup (Smoke Test)        
         run: |
-          docker run -d -p 8000:8000 --name test-container payments-api
+          docker run -d -p 8080:8080 --name test-container payments-api
           sleep 5
           docker ps | grep test-container
           docker stop test-container
@@ -84,7 +84,7 @@ jobs:
           echo "Testeando contra el pod: $POD_NAME"
 
           # Ejecutamos un test de transferencia real dentro del cluster
-          kubectl exec $POD_NAME -- curl -s -X POST "http://localhost:8000/transfer" \
+          kubectl exec $POD_NAME -- curl -s -X POST "http://localhost:8080/transfer" \
             -H "Content-Type: application/json" \
             -d '{"amount": 100, "vendor": "vendorA", "txhash": "0x123abc"}' | grep "success"
 
