@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install fastapi uvicorn pydantic requests prometheus-fastapi-instrumentator pytest pytest-cov
+          pip install fastapi uvicorn pydantic requests prometheus-fastapi-instrumentator pytest pytest-cov httpx
 
       - name: "Run Unit Tests (DORA: Quality Check)" 
         run: |
