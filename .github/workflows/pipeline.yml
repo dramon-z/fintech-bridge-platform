@@ -64,7 +64,7 @@ jobs:
         run: |
           export IMAGE=payments-api:local
           envsubst < k8s/deployment.yaml | kubectl apply -f -
-          cat k8s/service.yaml
+          cat k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml
 
       - name: "Wait for Deployment (DORA: Reliability)"
